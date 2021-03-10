@@ -2,7 +2,6 @@ package ui;
 
 import com.relevantcodes.extentreports.ExtentReports;
 import com.relevantcodes.extentreports.ExtentTest;
-import com.relevantcodes.extentreports.LogStatus;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -13,35 +12,27 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import utils.ConfigFileReader;
-import utils.Screenshots;
+import utils.report.utils.ReportUtils;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 public abstract class BaseTest {
 
     private static ExtentReports reports;
-    private static ExtentTest test;
+    private static ExtentTest extentTest;
     WebDriver driver;
     String baseURL = new ConfigFileReader().getApplicationUrl();
 
     @BeforeClass
-    public static void setupClass() {
+    public void setupClass() {
         WebDriverManager.chromedriver().setup();
-        initializeExtentReport();
-    }
-
-    private static void initializeExtentReport() {
-        Path currentPath = Paths.get(System.getProperty("user.dir"));
-        Path filePath = Paths.get(currentPath.toString(), "TestReport.html");
-        reports = new ExtentReports(filePath.toString());
+        reports = ReportUtils.initializeExtentReport();
     }
 
     @BeforeMethod
     public void setUpTest(ITestResult testResult) {
-        test = reports.startTest(getMethodName(testResult));
+        extentTest = ReportUtils.startTest(reports, testResult);
 
         driver = new ChromeDriver(getChromeOptions());
         driver.get(baseURL);
@@ -58,7 +49,7 @@ public abstract class BaseTest {
 
     @AfterMethod
     public void tearDown(ITestResult testResult) throws IOException {
-        logTestResult(testResult);
+        ReportUtils.logTestResult(testResult, driver, extentTest);
         quitDriver();
     }
 
@@ -68,24 +59,9 @@ public abstract class BaseTest {
         }
     }
 
-    private void logTestResult(ITestResult testResult) throws IOException {
-        if (testResult.getStatus() == testResult.FAILURE) {
-            String path = Screenshots.takeScreenshot(driver, getMethodName(testResult));
-            String imagePath = test.addScreenCapture(path);
-            test.log(LogStatus.FAIL, "Test: " + getMethodName(testResult) + " Failed", imagePath);
-        } else {
-            test.log(LogStatus.PASS, "Test: " + getMethodName(testResult) + " Passed");
-        }
-    }
-
-    private String getMethodName(ITestResult testResult) {
-        return testResult.getMethod().getMethodName();
-    }
-
     @AfterClass
     public void flushReports() {
-        reports.endTest(test);
-        reports.flush();
+        ReportUtils.flushReport(reports, extentTest);
     }
 
     public abstract void initializeElements();
