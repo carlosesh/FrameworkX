@@ -1,6 +1,8 @@
 package ui;
 
+import api.ServiceImp;
 import api.dataentities.Employees;
+import api.interfaces.ICrud;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
@@ -104,15 +106,10 @@ public class HomeTests extends BaseTest {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        //Store the request response
-        Response response = given()
-                .spec(requestSpec)
-                .relaxedHTTPSValidation()
-                .when()
-                .get();
+        ICrud api = new ServiceImp();
 
-        // Deserializing the Response body into Employees.class
-        return response.getBody().as(Employees.class);
+        // Deserialize the Response body into Employees.class
+        return api.getRequest(requestSpec).getBody().as(Employees.class);
     }
 
     public String getEmployeeName() {
